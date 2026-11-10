@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Crowd from "./Crowd";
 import type { Side } from "@/lib/config";
@@ -22,14 +23,18 @@ function formatDate(iso: string) {
 export default function TitleScreen({
   motion,
   game,
+  archiveDay,
   startFor,
 }: {
   motion: PublicMotion;
   game: GameState | null;
+  /** Set when replaying a past day from the archive. */
+  archiveDay?: number;
   /** Where the hall stands: today's player split (or this game's current crowd). */
   startFor: number;
 }) {
   const router = useRouter();
+  const playHref = archiveDay ? `/play?day=${archiveDay}` : "/play";
   const [busy, setBusy] = useState<Side | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { lead, body } = splitMotion(motion.title);
@@ -42,11 +47,15 @@ export default function TitleScreen({
       const res = await fetch("/api/game", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ side }),
+        body: JSON.stringify({ side, day: archiveDay }),
       });
       const data = await res.json();
+      if (res.status === 402) {
+        router.push("/archive?locked=1");
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Couldn't start the debate");
-      router.push("/play");
+      router.push(playHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start the debate");
       setBusy(null);
@@ -60,7 +69,7 @@ export default function TitleScreen({
           DEBATLE
         </h1>
         <p className="whitespace-nowrap text-lg leading-none text-muted">
-          NO. {motion.dayNumber} · {formatDate(motion.date)}
+          {archiveDay ? "ARCHIVE · " : ""}NO. {motion.dayNumber} · {formatDate(motion.date)}
         </p>
       </header>
 
@@ -83,7 +92,7 @@ export default function TitleScreen({
       </section>
 
       {game ? (
-        <button className="btn bg-brass py-4 text-lg text-ink" onClick={() => router.push("/play")}>
+        <button className="btn bg-brass py-4 text-lg text-ink" onClick={() => router.push(playHref)}>
           {game.status === "finished" ? "See the verdict" : `Continue · round ${game.round}`}
         </button>
       ) : (
@@ -110,6 +119,12 @@ export default function TitleScreen({
       <p className="text-center font-display text-[0.6rem] tracking-[0.12em] text-muted sm:tracking-[0.2em]">
         3 ROUNDS · 300 CHARACTERS · WIN THE ROOM
       </p>
+      <Link
+        href="/archive"
+        className="mx-auto font-display text-[0.65rem] tracking-[0.2em] text-brass underline-offset-4 hover:underline"
+      >
+        {archiveDay ? "◂ BACK TO THE ARCHIVE" : "PAST DEBATES · ARCHIVE ▸"}
+      </Link>
     </main>
   );
 }

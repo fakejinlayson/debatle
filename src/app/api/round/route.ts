@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { after } from "next/server";
-import { playRound, prepareAiSpeech, publicGame, todaysMotion } from "@/lib/game";
+import { motionForDay, playRound, prepareAiSpeech, publicGame } from "@/lib/game";
 import { readPlayerId } from "@/lib/player";
 import type { GameState } from "@/lib/types";
 import { errorResponse } from "../_respond";
@@ -8,7 +8,7 @@ import { errorResponse } from "../_respond";
 // Opponent + judge calls can take a while.
 export const maxDuration = 120;
 
-const Body = z.object({ text: z.string() });
+const Body = z.object({ text: z.string(), day: z.number().int().min(1).optional() });
 
 /**
  * Streams newline-delimited JSON so the UI can show both speeches while the
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   after(async () => {
     const game = await finished;
     // Write the AI's next speech while the player reads the result and writes theirs.
-    if (game) await prepareAiSpeech(game, await todaysMotion());
+    if (game) await prepareAiSpeech(game, await motionForDay(parsed.data!.day));
   });
 
   const enc = new TextEncoder();
@@ -36,8 +36,11 @@ export async function POST(req: Request) {
     async start(controller) {
       const send = (obj: unknown) => controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
       try {
-        const { game, record } = await playRound(playerId, parsed.data.text, (speeches) =>
-          send({ type: "speeches", ...speeches }),
+        const { game, record } = await playRound(
+          playerId,
+          parsed.data.text,
+          (speeches) => send({ type: "speeches", ...speeches }),
+          parsed.data.day,
         );
         send({ type: "result", game: publicGame(game), record });
         roundDone(game);

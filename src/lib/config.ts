@@ -6,6 +6,11 @@ export const ROUNDS = ["opening", "rebuttal", "closing"] as const;
 export type RoundType = (typeof ROUNDS)[number];
 export const TOTAL_ROUNDS = ROUNDS.length;
 
+/** Archive debates a player can play before needing the one-time unlock. */
+export const FREE_ARCHIVE_GAMES = 2;
+/** The unlock price in US cents. */
+export const UNLOCK_PRICE_CENTS = 500;
+
 export type Side = "for" | "against";
 export const otherSide = (s: Side): Side => (s === "for" ? "against" : "for");
 

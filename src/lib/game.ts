@@ -1,5 +1,5 @@
 import "server-only";
-import { otherSide, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "./config";
+import { FREE_ARCHIVE_GAMES, otherSide, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "./config";
 import { dayNumber } from "./day";
 import { judgeWithTiebreak } from "./judge";
 import { opponentSpeech } from "./opponent";
@@ -45,16 +45,66 @@ export async function todaysMotion(): Promise<Motion> {
   return motion;
 }
 
+/** Today's motion, or a past day's (archive). Future days are never playable. */
+export async function motionForDay(day?: number): Promise<Motion> {
+  const today = dayNumber();
+  if (day === undefined || day === today) return todaysMotion();
+  if (!Number.isInteger(day) || day < 1 || day > today) throw new GameError("That day isn't available", 404);
+  const motion = await store().getMotion(day);
+  if (!motion) throw new GameError("No motion for that day", 404);
+  return motion;
+}
+
+export const isArchiveDay = (day?: number) => day !== undefined && day < dayNumber();
+
+/** Thrown when a player needs the unlock to start another archive game. Maps to HTTP 402. */
+export class ArchiveLocked extends GameError {
+  constructor() {
+    super("You've used your free archive debates. Unlock the archive to keep going.", 402);
+  }
+}
+
+export interface ArchiveAccess {
+  unlocked: boolean;
+  freeTotal: number;
+  freeUsed: number;
+  freeLeft: number;
+}
+
+/** What this player may do in the archive. `userId` is the signed-in account, if any. */
+export async function archiveAccess(playerId: string | null, userId: string | null): Promise<ArchiveAccess> {
+  const [unlocked, freeUsed] = await Promise.all([
+    userId ? store().hasUnlock(userId) : Promise.resolve(false),
+    playerId ? store().countArchiveGames(playerId) : Promise.resolve(0),
+  ]);
+  return { unlocked, freeTotal: FREE_ARCHIVE_GAMES, freeUsed, freeLeft: Math.max(0, FREE_ARCHIVE_GAMES - freeUsed) };
+}
+
 /** The hall's starting FOR share for a game begun now: today's player split so far. */
 export async function startingCrowd(motion: Motion): Promise<number> {
   const { forCount, total } = await store().sideCounts(motion.id);
   return startingSplit(forCount, total);
 }
 
-export async function startGame(playerId: string, side: Side): Promise<GameState> {
-  const motion = await todaysMotion();
+/**
+ * Starts (or resumes) a game. `day` defaults to today; a past day is an archive
+ * game, which needs a free archive play or the unlock unless it already exists.
+ */
+export async function startGame(
+  playerId: string,
+  side: Side,
+  opts: { day?: number; userId?: string | null } = {},
+): Promise<GameState> {
+  const motion = await motionForDay(opts.day);
+  const archive = isArchiveDay(opts.day);
   await store().ensurePlayer(playerId);
-  return store().createGame(playerId, motion, side, await startingCrowd(motion));
+  if (archive) {
+    const existing = await store().getGame(playerId, motion.id);
+    if (existing) return existing;
+    const access = await archiveAccess(playerId, opts.userId ?? null);
+    if (!access.unlocked && access.freeLeft <= 0) throw new ArchiveLocked();
+  }
+  return store().createGame(playerId, motion, side, await startingCrowd(motion), archive);
 }
 
 const devLog = (...args: unknown[]) => {
@@ -71,11 +121,13 @@ export async function playRound(
   playerId: string,
   rawText: string,
   onSpeeches?: (speeches: { round: number; playerText: string; aiText: string }) => void,
+  day?: number,
 ): Promise<{ game: GameState; record: RoundRecord }> {
-  const motion = await todaysMotion();
+  // Archive games can only exist if startGame allowed them, so no access check here.
+  const motion = await motionForDay(day);
   const game = await store().getGame(playerId, motion.id);
   if (!game) throw new GameError("Pick a side first", 409);
-  if (game.status === "finished") throw new GameError("Today's debate is over", 409);
+  if (game.status === "finished") throw new GameError("This debate is over", 409);
 
   const round = game.round;
   const locked = game.pendingAi?.round === round ? game.pendingAi.playerText : undefined;

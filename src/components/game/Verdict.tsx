@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { netSwing, roundEmoji, shareText, tierFor } from "@/lib/scoring";
 import type { GameState, PublicMotion } from "@/lib/types";
 
@@ -28,10 +29,12 @@ export default function Verdict({
   game,
   motion,
   resetsInMs,
+  archiveDay,
 }: {
   game: GameState;
   motion: PublicMotion;
   resetsInMs: number;
+  archiveDay?: number;
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [copied, setCopied] = useState(false);
@@ -40,11 +43,11 @@ export default function Verdict({
   const net = netSwing(game.startFor, game.crowdFor, game.side);
 
   useEffect(() => {
-    fetch("/api/stats")
+    fetch(archiveDay ? `/api/stats?day=${archiveDay}` : "/api/stats")
       .then((r) => (r.ok ? r.json() : null))
       .then(setStats)
       .catch(() => {});
-  }, []);
+  }, [archiveDay]);
 
   async function share() {
     const text = `${shareText(game, motion.dayNumber, motion.emoji, game.startFor)}\n${window.location.origin}`;
@@ -101,9 +104,15 @@ export default function Verdict({
         </div>
       )}
 
-      <p className="text-center text-xl text-muted">
+      {archiveDay ? (
+        <Link href="/archive" className="text-center font-display text-sm tracking-[0.2em] text-brass hover:underline">
+          ◂ BACK TO THE ARCHIVE
+        </Link>
+      ) : (
+        <p className="text-center text-xl text-muted">
         Next motion in <span className="text-parchment">{countdown}</span>
       </p>
+      )}
     </section>
   );
 }

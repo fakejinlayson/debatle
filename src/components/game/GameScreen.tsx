@@ -145,10 +145,13 @@ export default function GameScreen({
   motion,
   initialGame,
   resetsInMs,
+  archiveDay,
 }: {
   motion: PublicMotion;
   initialGame: GameState;
   resetsInMs: number;
+  /** Set when replaying a past day from the archive. */
+  archiveDay?: number;
 }) {
   const [game, setGame] = useState(initialGame);
   const [phase, setPhase] = useState<Phase>(initialGame.status === "finished" ? "done" : "write");
@@ -185,7 +188,7 @@ export default function GameScreen({
       const res = await fetch("/api/round", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: speeches?.playerText ?? text }),
+        body: JSON.stringify({ text: speeches?.playerText ?? text, day: archiveDay }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -275,7 +278,7 @@ export default function GameScreen({
         </div>
       </section>
 
-      {phase === "done" && <Verdict game={game} motion={motion} resetsInMs={resetsInMs} />}
+      {phase === "done" && <Verdict game={game} motion={motion} resetsInMs={resetsInMs} archiveDay={archiveDay} />}
 
       {phase === "write" && (
         <>

@@ -26,5 +26,10 @@ Daily debate game: one silly motion a day, the player argues it against Claude o
 ## Database (Supabase)
 - Project region us-east-1 (North Virginia), next to Vercel's default function region (`iad1`). Moved from Mumbai on 10 Nov 2026.
 - Apply migrations: `npx supabase db push --remote="$SUPABASE_DB_URL"` (session pooler URL, port 5432, in `.env.local`).
-- Motion schedule: `supabase/seed_schedule.sql` (31 days from DEBATLE_EPOCH), loaded with `python scripts/seed_schedule.py`; rearrange in the Supabase table editor. Pre-write openers with `POST /api/admin/openings {"day":N}` and header `x-admin-secret`.
+- Motion schedule: `supabase/seed_schedule.sql` (31 days from DEBATLE_EPOCH), loaded with `python scripts/seed_schedule.py`; rearrange in the Supabase table editor. Openers are written automatically by the daily cron `GET /api/cron/openings` (vercel.json, 12:00 UTC, `Authorization: Bearer $CRON_SECRET`): it fills missing openers for tomorrow and the day after, never overwrites, and logs days with no motion. Manual/forced: `POST /api/admin/openings {"day":N,"force":true}` with header `x-admin-secret`. Shared logic: `src/lib/openings.ts`.
+
+## Archive + unlock
+- Past days are playable at `/archive` → `/archive/[day]` → `/play?day=N`. `FREE_ARCHIVE_GAMES` (2) per player, then the one-time $5 unlock (`UNLOCK_PRICE_CENTS`). Enforced server-side in `startGame` (HTTP 402); resuming a started archive game is always allowed; today is never locked.
+- Unlock = Google sign-in (Supabase Auth, `/auth/google` → `/auth/callback`, server-side only via `src/lib/auth.ts`) then Stripe Checkout (`/api/unlock/checkout`). Recorded in `unlocks` by the webhook (`/api/stripe/webhook`) and by the success-page check (`confirmCheckout`), idempotent on the Checkout session id. Signing in on any device links that browser's player and restores the unlock.
+- `src/proxy.ts` refreshes Supabase sessions only for visitors with a sign-in cookie.
 
