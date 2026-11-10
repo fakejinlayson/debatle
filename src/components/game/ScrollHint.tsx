@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { scrollElementIntoView } from "@/lib/scroll";
 
 // A small pinned "▼ SCROLL" button shown while `targetId` is below the fold.
 // Tapping it scrolls there; it disappears once the target is on screen.
@@ -26,7 +27,10 @@ export default function ScrollHint({ targetId, active }: { targetId: string; act
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center pb-[env(safe-area-inset-bottom)]">
       <button
         type="button"
-        onClick={() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+        onClick={() => {
+          const el = document.getElementById(targetId);
+          if (el) scrollElementIntoView(el);
+        }}
         className="btn anim-bob pointer-events-auto bg-brass px-4 py-2 text-[0.65rem] text-ink"
         aria-label="Scroll down"
       >

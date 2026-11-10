@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import SwingBar from "./SwingBar";
+import { scrollElementIntoView } from "@/lib/scroll";
 import { ROUNDS, type Side } from "@/lib/config";
 import { DIMENSION_MAX } from "@/lib/scoring";
 import type { RoundRecord, SideScore } from "@/lib/types";
 
 // One round's result: both speeches, the judge's line, scores, swing.
 // `step` drives the staged reveal (0 = speeches, 1 = verdict, 2 = scores, 3+ = swing).
+
+/** Manual scrolling within this window pauses auto-follow for one reveal step. */
+const FOLLOW_GRACE_MS = 1500;
 
 const sideColor = (s: Side) => (s === "for" ? "text-for" : "text-against");
 const sideBg = (s: Side) => (s === "for" ? "bg-for" : "bg-against");
@@ -109,26 +113,30 @@ export default function RoundCard({
   const verdictRef = useRef<HTMLDivElement>(null);
   const scoresRef = useRef<HTMLDivElement>(null);
   const swingRef = useRef<HTMLDivElement>(null);
-  const followRef = useRef(true);
+  // When the player last scrolled by hand (touch, wheel or keys).
+  const userScrolledAt = useRef(0);
 
-  // During a live reveal, stop following once the player scrolls themselves.
+  // During a live reveal, note manual scrolling so auto-follow can step aside.
   useEffect(() => {
     if (!live) return;
-    const stop = () => (followRef.current = false);
-    window.addEventListener("wheel", stop, { passive: true });
-    window.addEventListener("touchmove", stop, { passive: true });
-    window.addEventListener("keydown", stop);
+    const mark = () => (userScrolledAt.current = Date.now());
+    window.addEventListener("wheel", mark, { passive: true });
+    window.addEventListener("touchmove", mark, { passive: true });
+    window.addEventListener("keydown", mark);
     return () => {
-      window.removeEventListener("wheel", stop);
-      window.removeEventListener("touchmove", stop);
-      window.removeEventListener("keydown", stop);
+      window.removeEventListener("wheel", mark);
+      window.removeEventListener("touchmove", mark);
+      window.removeEventListener("keydown", mark);
     };
   }, [live]);
 
-  // Follow the reveal: bring each newly revealed part into view.
+  // Follow the reveal: bring each newly revealed part into view. If the player
+  // scrolled in the last moment, skip just this step (the next one follows
+  // again) rather than switching auto-follow off for the whole round: on a
+  // phone almost everyone swipes a little while reading.
   useEffect(() => {
-    if (!live || !followRef.current) return;
-    const target =
+    if (!live) return;
+    const target = (): HTMLElement | null =>
       step === 1
         ? verdictRef.current
         : step === 2
@@ -138,13 +146,14 @@ export default function RoundCard({
             : step === 4
               ? document.getElementById("reveal-next")
               : null;
-    if (!target) return;
-    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // Let the newly rendered part lay out before measuring.
-    const id = window.requestAnimationFrame(() =>
-      target.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: step === 2 ? "start" : "center" }),
-    );
-    return () => window.cancelAnimationFrame(id);
+    // Wait briefly so the newly revealed part has laid out (and any momentum
+    // scroll has settled) before measuring.
+    const id = window.setTimeout(() => {
+      const el = target();
+      if (!el || Date.now() - userScrolledAt.current < FOLLOW_GRACE_MS) return;
+      scrollElementIntoView(el, step === 2 ? "start" : "center");
+    }, 120);
+    return () => window.clearTimeout(id);
   }, [live, step]);
   // Colours: mint/coral only ever mean FOR/AGAINST. Winning and losing use brass
   // (good for you) and muted grey (good for them), whichever side you're on.
