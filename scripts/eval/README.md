@@ -23,3 +23,8 @@ Start the dev server first. Each run makes real Claude calls (roughly $0.25 to $
   60.6 (Opus opponent 62.8); a decent human argument wins about half the time.
 - `model_compare.py` / dev route accept `"model": "production"` to run the real
   Haiku-then-Opus-tiebreak path. Close cases (C3, C7) went to Opus 3 of 4 times.
+- `python speech_leak_test.py [n] [model]`: generates n round-3 closings and
+  flags any that read like notes or instructions instead of a speech.
+  10 Nov 2026: Haiku at low effort leaked 1/16 (plus "This is the last word,
+  so keep it simple" self-talk in most); after the output rule + medium effort
+  + retry guard in `opponent.ts`: 0/16, no retries needed.
