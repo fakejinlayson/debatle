@@ -6,6 +6,8 @@ import Crowd from "@/components/Crowd";
 import RoundCard, { SpeechCard } from "./RoundCard";
 import Verdict from "./Verdict";
 import Chatter from "./Chatter";
+import ScrollHint from "./ScrollHint";
+import SwingBar from "./SwingBar";
 import { ROUNDS, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "@/lib/config";
 import { useSpeechInput } from "@/lib/useSpeechInput";
 import type { GameState, PublicMotion, RoundRecord } from "@/lib/types";
@@ -47,7 +49,7 @@ function Hud({ game, crowdFor, round }: { game: GameState; crowdFor: number; rou
           />
         ))}
       </span>
-      <span className={`font-display text-xs tracking-wider ${sideCls}`}>
+      <span className={`whitespace-nowrap font-display text-xs tracking-wider ${sideCls}`}>
         {game.side.toUpperCase()} {Math.round(mine)}%
       </span>
     </header>
@@ -257,6 +259,10 @@ export default function GameScreen({
   const prevCrowd = reveal ? (game.rounds.at(-2)?.crowdFor ?? game.startFor) : game.crowdFor;
   const crowdFor = reveal && reveal.step < 3 ? prevCrowd : game.crowdFor;
   const history = reveal ? game.rounds.slice(0, -1) : game.rounds;
+  // The moment voters change sides (reveal step 3): drives the hall VFX.
+  const swingDelta = reveal && reveal.step >= 3 ? game.crowdFor - prevCrowd : 0;
+  const swinging = swingDelta !== 0;
+  const gainer = swingDelta > 0 ? "FOR" : "AGAINST";
   const lastAi = history.at(-1);
 
   return (
@@ -267,14 +273,33 @@ export default function GameScreen({
         <p className="text-xl leading-tight">{motion.title}</p>
       </section>
 
-      <section className="panel mx-auto w-full max-w-md p-2">
+      <section
+        className={`panel mx-auto w-full max-w-md p-2 ${swinging ? "fx-shake" : ""}`}
+        style={{ "--amp": `${Math.min(7, 2 + Math.abs(swingDelta) / 3)}px` } as React.CSSProperties}
+      >
         <div className="relative">
           <Crowd forPct={crowdFor} />
           <Chatter active={phase === "judging" && !error} />
+          {swinging && (
+            <>
+              <div
+                key={`flash-${reveal?.record.round}`}
+                className="fx-flash pointer-events-none absolute inset-0"
+                style={{ background: swingDelta > 0 ? "var(--for)" : "var(--against)" }}
+              />
+              <span
+                key={`float-${reveal?.record.round}`}
+                className={`fx-float pointer-events-none absolute left-1/2 top-1/3 whitespace-nowrap font-display text-2xl font-bold tracking-widest [text-shadow:2px_2px_0_var(--ink)] ${
+                  swingDelta > 0 ? "text-for" : "text-against"
+                }`}
+              >
+                {swingDelta > 0 ? "◀" : ""} {Math.abs(swingDelta)} {gainer} {swingDelta < 0 ? "▶" : ""}
+              </span>
+            </>
+          )}
         </div>
-        <div className="mt-2 flex h-3 w-full overflow-hidden" aria-hidden>
-          <div className="bg-for transition-[width] duration-1000" style={{ width: `${crowdFor}%` }} />
-          <div className="flex-1 bg-against" />
+        <div className="mt-2">
+          <SwingBar from={prevCrowd} to={crowdFor} animate={swinging} />
         </div>
       </section>
 
@@ -313,8 +338,8 @@ export default function GameScreen({
 
       {phase === "reveal" && reveal && (
         <section className="flex flex-col gap-4">
-          <RoundCard record={reveal.record} playerSide={game.side} step={reveal.step} />
-          <button className="btn bg-brass py-4 text-lg text-ink" onClick={finishReveal}>
+          <RoundCard record={reveal.record} playerSide={game.side} fromFor={prevCrowd} step={reveal.step} />
+          <button id="reveal-next" className="btn scroll-mt-4 bg-brass py-4 text-lg text-ink" onClick={finishReveal}>
             {reveal.step < 4 ? "Skip" : game.status === "finished" ? "The verdict" : `Round ${reveal.record.round + 1}`}
           </button>
         </section>
@@ -327,12 +352,18 @@ export default function GameScreen({
             <span className="hidden group-open:inline">▾ The debate</span>
           </summary>
           <div className="mt-4 flex flex-col gap-6">
-            {history.map((r) => (
-              <RoundCard key={r.round} record={r} playerSide={game.side} />
+            {history.map((r, i) => (
+              <RoundCard
+                key={r.round}
+                record={r}
+                playerSide={game.side}
+                fromFor={i === 0 ? game.startFor : history[i - 1].crowdFor}
+              />
             ))}
           </div>
         </details>
       )}
+      <ScrollHint targetId="reveal-next" active={phase === "reveal"} />
     </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import SwingBar from "./SwingBar";
 import { ROUNDS, type Side } from "@/lib/config";
 import { DIMENSION_MAX } from "@/lib/scoring";
 import type { RoundRecord, SideScore } from "@/lib/types";
@@ -91,17 +92,60 @@ function Bars({ s, side, show }: { s: SideScore; side: Side; show: boolean }) {
 export default function RoundCard({
   record,
   playerSide,
+  fromFor,
   step = 99,
   compact = false,
 }: {
   record: RoundRecord;
   playerSide: Side;
+  /** The hall's FOR share before this round (for the swing bar). */
+  fromFor?: number;
   step?: number;
   compact?: boolean;
 }) {
   const aiSide: Side = playerSide === "for" ? "against" : "for";
   const { judgement: j, swing } = record;
   const live = step < 99;
+  const verdictRef = useRef<HTMLDivElement>(null);
+  const scoresRef = useRef<HTMLDivElement>(null);
+  const swingRef = useRef<HTMLDivElement>(null);
+  const followRef = useRef(true);
+
+  // During a live reveal, stop following once the player scrolls themselves.
+  useEffect(() => {
+    if (!live) return;
+    const stop = () => (followRef.current = false);
+    window.addEventListener("wheel", stop, { passive: true });
+    window.addEventListener("touchmove", stop, { passive: true });
+    window.addEventListener("keydown", stop);
+    return () => {
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchmove", stop);
+      window.removeEventListener("keydown", stop);
+    };
+  }, [live]);
+
+  // Follow the reveal: bring each newly revealed part into view.
+  useEffect(() => {
+    if (!live || !followRef.current) return;
+    const target =
+      step === 1
+        ? verdictRef.current
+        : step === 2
+          ? scoresRef.current
+          : step === 3
+            ? swingRef.current
+            : step === 4
+              ? document.getElementById("reveal-next")
+              : null;
+    if (!target) return;
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Let the newly rendered part lay out before measuring.
+    const id = window.requestAnimationFrame(() =>
+      target.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: step === 2 ? "start" : "center" }),
+    );
+    return () => window.cancelAnimationFrame(id);
+  }, [live, step]);
   // Colours: mint/coral only ever mean FOR/AGAINST. Winning and losing use brass
   // (good for you) and muted grey (good for them), whichever side you're on.
   const diff = j.player.total - j.ai.total;
@@ -123,7 +167,7 @@ export default function RoundCard({
       </div>
 
       {step >= 1 && (
-        <div className={`panel px-4 py-3 text-center ${OUTCOME.panel}`}>
+        <div ref={verdictRef} className={`panel scroll-mt-4 px-4 py-3 text-center ${OUTCOME.panel}`}>
           <p className={`font-display text-xs tracking-[0.25em] ${OUTCOME.label_cls}`}>{OUTCOME.label}</p>
           <p className="mt-1 text-2xl leading-tight">
             “<TypeText key={String(live && step === 1)} text={j.verdictLine} run={live && step === 1} />”
@@ -132,7 +176,7 @@ export default function RoundCard({
       )}
 
       {step >= 2 && !compact && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div ref={scoresRef} className="grid scroll-mt-4 gap-3 sm:grid-cols-2">
           <div className="panel p-3">
             <p className={`mb-2 font-display text-[0.6rem] tracking-[0.18em] ${sideColor(playerSide)}`}>
               YOU · {j.player.total}
@@ -164,20 +208,27 @@ export default function RoundCard({
       )}
 
       {step >= 3 && (
-        <p
-          className={`anim-stamp text-center font-display text-lg tracking-widest ${
-            swing > 0 ? "text-brass" : swing < 0 ? "text-muted" : "text-parchment"
-          }`}
-        >
-          {swing > 0
-            ? `+${swing} VOTERS WON OVER`
-            : swing < 0
-              ? `${Math.abs(swing)} VOTERS LOST`
-              : "THE HALL HOLDS STEADY"}
-          <span className="mt-1 block text-xs tracking-[0.2em] text-muted">
+        <div ref={swingRef} className="flex flex-col items-center gap-2">
+          <p
+            className={`anim-stamp text-center font-display text-lg tracking-widest ${
+              swing > 0 ? "text-brass" : swing < 0 ? "text-muted" : "text-parchment"
+            }`}
+          >
+            {swing > 0
+              ? `+${swing} VOTERS WON OVER`
+              : swing < 0
+                ? `${Math.abs(swing)} VOTERS LOST`
+                : "THE HALL HOLDS STEADY"}
+          </p>
+          {fromFor !== undefined && (
+            <div className="w-full max-w-sm">
+              <SwingBar from={fromFor} to={record.crowdFor} animate={live} className="h-4" />
+            </div>
+          )}
+          <span className="text-center font-display text-xs tracking-[0.2em] text-muted">
             HALL NOW {record.crowdFor}% FOR · {100 - record.crowdFor}% AGAINST
           </span>
-        </p>
+        </div>
       )}
     </article>
   );

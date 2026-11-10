@@ -196,7 +196,121 @@ body {
   animation: blink 1.2s steps(2) infinite;
 }
 
+/* ── Swing VFX: when voters change sides ── */
+@keyframes fx-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  12% {
+    transform: translate(calc(var(--amp) * -1), 1px);
+  }
+  28% {
+    transform: translate(var(--amp), -1px);
+  }
+  44% {
+    transform: translate(calc(var(--amp) * -0.7), 1px);
+  }
+  60% {
+    transform: translate(calc(var(--amp) * 0.5), 0);
+  }
+  76% {
+    transform: translate(calc(var(--amp) * -0.25), 0);
+  }
+}
+.fx-shake {
+  animation: fx-shake 650ms steps(13) both;
+}
+@keyframes fx-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.fx-flash {
+  animation: fx-flash 550ms steps(6) both;
+  mix-blend-mode: screen;
+}
+@keyframes fx-bar-move {
+  from {
+    width: var(--from);
+  }
+  to {
+    width: var(--to);
+  }
+}
+.fx-bar-move {
+  animation: fx-bar-move 700ms steps(10) both;
+}
+@keyframes fx-bar-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  32% {
+    opacity: 0.9;
+  }
+  21%,
+  50% {
+    opacity: 0.15;
+  }
+}
+.fx-bar-flash {
+  animation: fx-bar-flash 1000ms steps(10) both;
+}
+@keyframes fx-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.6);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.15);
+  }
+  24% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -26px);
+  }
+}
+.fx-float {
+  animation: fx-float 1700ms steps(17) both;
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+.anim-bob {
+  animation: bob 1.1s steps(2) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .fx-shake,
+  .fx-bar-move,
+  .anim-bob {
+    animation: none;
+  }
+  .fx-flash,
+  .fx-bar-flash,
+  .fx-float {
+    display: none;
+  }
   .btn {
     transition: none;
   }
