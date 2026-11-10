@@ -78,8 +78,12 @@ debatle.app
 - **Round 1 openings are pre-generated per side** via `POST /api/admin/openings {day}` (protected by `DEBATLE_ADMIN_SECRET`) when a motion is scheduled. Same for everyone, $0 per player. In dev without Supabase they're generated live.
 
 ### Models and cost
-- Both calls use `claude-opus-5-5` with adaptive thinking (effort `low` for the opponent, `medium` for the judge), plus server-side refusal fallbacks (`fallbacks: "default"`).
-- **Cost estimate**: about $0.08–0.12 per completed game (3 judge calls + 2 opponent calls). At 10k games a day that's roughly $1k a day. **Decision for Jake before launch**: build a calibration eval (§5), then test `claude-haiku-5-5` for the opponent and/or judge. It is about 40× cheaper and may hold quality for 300-character speeches.
+- **Decided 10 Nov 2026** from `scripts/eval/model_compare.py` (10 debates, Opus as reference):
+  - **Opponent: Haiku 5.5** (natural, beatable, avg 60.6 vs Opus 62.8), with Opus as backup if Haiku refuses or errors.
+  - **Judge: Haiku 5.5**, and **Opus 5.5 re-judges close rounds** (Haiku gap ≤ 3 points, where the two disagree most) or takes over if Haiku fails. Opus's verdict is used whole. Each round records `judgedBy`.
+  - Sonnet 5.5 was rejected: only ~2.4× cheaper than Opus and returned malformed structured output on several calls.
+- **Measured cost:** a full game with no close rounds ≈ **$0.004** (was ≈ $0.15 on all-Opus); each close round adds ≈ $0.035 for the Opus re-judge. Judge latency 5–10s (Opus tiebreak rounds ~15–20s).
+- Tier cut-offs sit 5 points below the WUDC bands to match Haiku's scale.
 
 ## 4. Look and feel: "The Chamber"
 - A pixel-art **debate hall**: dark oak and oxblood, brass rails, the motion on a hanging banner, **100 pixel voters** in tiered benches, coloured by vote (FOR mint `#3fe0b0` filling from the left, AGAINST coral `#ff5d73` from the right).

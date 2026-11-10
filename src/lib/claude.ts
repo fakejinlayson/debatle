@@ -9,11 +9,24 @@ export function claude(): Anthropic {
   return client;
 }
 
-/** Server-side refusal fallbacks: on a safety decline the API re-runs on a suitable model. */
-export const fallback = (): { betas: Anthropic.Beta.AnthropicBeta[]; fallbacks: "default" } => ({
-  betas: ["server-side-fallback-2026-07-01"],
-  fallbacks: "default",
-});
+/**
+ * Server-side refusal fallbacks: on a safety decline the API re-runs on a
+ * suitable model. Haiku has no server-side fallback, so it gets none.
+ */
+export const fallback = (
+  model: string,
+): { betas?: Anthropic.Beta.AnthropicBeta[]; fallbacks?: "default" } =>
+  model.startsWith("claude-haiku")
+    ? {}
+    : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
+
+export interface CallUsage {
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number | null;
+  ms: number;
+}
 
 /** USD per million tokens (input, output, cache read). Update when models change. */
 const PRICES: Record<string, [number, number, number]> = {

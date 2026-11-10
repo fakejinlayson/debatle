@@ -1,8 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { claude, fallback, ClaudeRefusal, logUsage } from "./claude";
-import { MODELS, ROUNDS, otherSide, type Side } from "./config";
+import { claude, fallback, ClaudeRefusal, logUsage, type CallUsage } from "./claude";
+import { MODELS, ROUNDS, TIEBREAK_GAP, otherSide, type Side } from "./config";
 import { DIMENSION_MAX } from "./scoring";
 import type { Motion, RoundJudgement, RoundRecord, SideScore } from "./types";
 import { judgeKnowledge } from "./knowledge";
@@ -132,9 +132,15 @@ export interface JudgeInput {
   playerText: string;
   aiText: string;
   previous: RoundRecord[];
+  /** Override the judge model (dev calibration only). */
+  model?: string;
+  /** Receives token usage and latency (dev calibration only). */
+  onUsage?: (u: CallUsage) => void;
 }
 
 export async function judgeRound(input: JudgeInput): Promise<RoundJudgement> {
+  const model = input.model ?? MODELS.judge;
+  const started = Date.now();
   const { motion, playerSide, round, playerText, aiText, previous } = input;
   const aiSide = otherSide(playerSide);
   const forFirst = Math.random() < 0.5; // position-bias mitigation
@@ -175,22 +181,24 @@ export async function judgeRound(input: JudgeInput): Promise<RoundJudgement> {
     .join("\n\n");
 
   const res = await claude().beta.messages.parse({
-    model: MODELS.judge,
+    model,
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     output_config: { effort: "medium", format: betaZodOutputFormat(JudgementSchema) },
-    ...fallback(),
+    ...fallback(model),
     system: JUDGE_SYSTEM,
     messages: [{ role: "user", content: user }],
   });
 
-  logUsage(`judge r${round}`, MODELS.judge, res.usage);
+  logUsage(`judge r${round}`, model, res.usage);
+  input.onUsage?.({ model, ...res.usage, ms: Date.now() - started });
   if (res.stop_reason === "refusal") throw new ClaudeRefusal(res.stop_details?.category);
   const out = res.parsed_output;
   if (!out) throw new Error("Judge returned no parseable verdict");
 
   const bySide = { for: toSideScore(out.for_side), against: toSideScore(out.against_side) };
   return {
+    judgedBy: model,
     verdictLine: out.verdict_line,
     player: bySide[playerSide],
     ai: bySide[aiSide],
@@ -200,4 +208,25 @@ export async function judgeRound(input: JudgeInput): Promise<RoundJudgement> {
     })),
     openClashes: out.open_clashes,
   };
+}
+
+/**
+ * Production judging: Haiku first; Opus re-judges close rounds (|gap| <=
+ * TIEBREAK_GAP), and takes over if Haiku fails. Opus's verdict is used whole.
+ */
+export async function judgeWithTiebreak(input: Omit<JudgeInput, "model">): Promise<RoundJudgement> {
+  let first: RoundJudgement;
+  try {
+    first = await judgeRound({ ...input, model: MODELS.judge });
+  } catch (err) {
+    console.warn("Haiku judge failed, using Opus", err);
+    return judgeRound({ ...input, model: MODELS.judgeTiebreak });
+  }
+  if (Math.abs(first.player.total - first.ai.total) > TIEBREAK_GAP) return first;
+  try {
+    return await judgeRound({ ...input, model: MODELS.judgeTiebreak });
+  } catch (err) {
+    console.warn("Opus tiebreak failed, keeping Haiku's verdict", err);
+    return first;
+  }
 }

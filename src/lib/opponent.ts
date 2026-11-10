@@ -1,5 +1,5 @@
 import "server-only";
-import { claude, fallback, ClaudeRefusal, logUsage } from "./claude";
+import { claude, fallback, ClaudeRefusal, logUsage, type CallUsage } from "./claude";
 import { MODELS, ROUNDS, SPEECH_MAX_CHARS, type Side } from "./config";
 import type { Motion } from "./types";
 import { opponentKnowledge } from "./knowledge";
@@ -64,9 +64,27 @@ export interface OpponentInput {
   round: number; // 1-based
   /** Earlier rounds, both sides, in order. */
   previous: { round: number; aiText: string; playerText: string }[];
+  /** Override the opponent model (dev calibration only). */
+  model?: string;
+  onUsage?: (u: CallUsage) => void;
 }
 
+/**
+ * The AI's speech. Uses Haiku, falling back to Opus if Haiku refuses or errors.
+ * An explicit `input.model` (dev calibration) is used as-is, with no fallback.
+ */
 export async function opponentSpeech(input: OpponentInput): Promise<string> {
+  if (input.model) return writeSpeech(input, input.model);
+  try {
+    return await writeSpeech(input, MODELS.opponent);
+  } catch (err) {
+    console.warn("Haiku opponent failed, using Opus", err);
+    return writeSpeech(input, MODELS.opponentBackup);
+  }
+}
+
+async function writeSpeech(input: OpponentInput, model: string): Promise<string> {
+  const started = Date.now();
   const { motion, aiSide, round, previous } = input;
   const opp = label(aiSide === "for" ? "against" : "for");
 
@@ -89,16 +107,17 @@ export async function opponentSpeech(input: OpponentInput): Promise<string> {
     .join("\n\n");
 
   const res = await claude().beta.messages.create({
-    model: MODELS.opponent,
+    model,
     max_tokens: 4000,
     thinking: { type: "adaptive" },
     output_config: { effort: "low" },
-    ...fallback(),
+    ...fallback(model),
     system: OPPONENT_SYSTEM,
     messages: [{ role: "user", content: user }],
   });
 
-  logUsage(`opponent r${round}`, MODELS.opponent, res.usage);
+  logUsage(`opponent r${round}`, model, res.usage);
+  input.onUsage?.({ model, ...res.usage, ms: Date.now() - started });
   if (res.stop_reason === "refusal") throw new ClaudeRefusal(res.stop_details?.category);
   const text = res.content
     .filter((b) => b.type === "text")

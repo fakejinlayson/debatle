@@ -48,11 +48,13 @@ export function didWin(rounds: RoundRecord[], startFor: number, endFor: number, 
   return p >= a;
 }
 
+// Cut-offs sit ~5 below the WUDC bands because the Haiku judge scores ~5-10
+// points lower than Opus (scripts/eval baseline, 10 Nov 2026).
 export const TIERS = [
-  { min: 90, name: "Unanswerable" },
-  { min: 80, name: "Orator" },
-  { min: 70, name: "Barrister" },
-  { min: 60, name: "Backbencher" },
+  { min: 85, name: "Unanswerable" },
+  { min: 75, name: "Orator" },
+  { min: 65, name: "Barrister" },
+  { min: 55, name: "Backbencher" },
   { min: 0, name: "Heckler" },
 ] as const;
 

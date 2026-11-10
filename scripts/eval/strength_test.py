@@ -1,10 +1,12 @@
-import json, urllib.request
+import json, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from statistics import mean
 
 # How strong is the opponent? Generate several FOR openings and judge each
 # against two fixed AGAINST speeches: Claude's own (V3) and Jake's tidied (V2).
 URL = "http://localhost:3107/api/dev/judge"
+# Optional: python strength_test.py claude-haiku-5-5  (opponent model; the judge stays on the default)
+OPP_MODEL = sys.argv[1] if len(sys.argv) > 1 else None
 MOTION = "This House believes cereal is a soup"
 REFS = {
     "Claude's AGAINST (V3)": "Soup is something you cook, and cereal is just stuff you pour out of a box. Nobody's ever made a pot of cereal or had it for a starter. If you called it soup at breakfast, everyone at the table would look at you funny.",
@@ -17,7 +19,7 @@ def post(body):
         return json.load(r)
 
 with ThreadPoolExecutor(max_workers=4) as ex:
-    openers = list(ex.map(lambda _: post({"action": "speak", "motion": MOTION, "side": "for", "round": 1})["text"], range(4)))
+    openers = list(ex.map(lambda _: post({"action": "speak", "motion": MOTION, "side": "for", "round": 1, **({"model": OPP_MODEL} if OPP_MODEL else {})})["text"], range(4)))
 
 jobs = [(i, ref) for i in range(len(openers)) for ref in REFS]
 def judge(job):

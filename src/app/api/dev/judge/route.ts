@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { judgeRound } from "@/lib/judge";
+import { judgeRound, judgeWithTiebreak } from "@/lib/judge";
 import { opponentSpeech } from "@/lib/opponent";
 import { errorResponse } from "../../_respond";
 import type { Motion } from "@/lib/types";
+import type { CallUsage } from "@/lib/claude";
 
 // Dev-only calibration tool: judge (or have the opponent write) an arbitrary
 // speech pair outside a real game. Used for bias tests and the Phase 2 eval.
@@ -20,6 +21,7 @@ const Body = z.discriminatedUnion("action", [
     playerText: z.string(),
     aiText: z.string(),
     previous: z.array(Prev).default([]),
+    model: z.string().optional(),
   }),
   z.object({
     action: z.literal("speak"),
@@ -27,6 +29,7 @@ const Body = z.discriminatedUnion("action", [
     side: z.enum(["for", "against"]),
     round: z.number().int().min(1).max(3),
     previous: z.array(Prev).default([]),
+    model: z.string().optional(),
   }),
 ]);
 
@@ -47,8 +50,16 @@ export async function POST(req: Request) {
   const b = parsed.data;
   try {
     if (b.action === "speak") {
-      const text = await opponentSpeech({ motion: devMotion(b.motion), aiSide: b.side, round: b.round, previous: b.previous });
-      return Response.json({ text });
+      let usage: CallUsage | null = null;
+      const text = await opponentSpeech({
+        motion: devMotion(b.motion),
+        aiSide: b.side,
+        round: b.round,
+        previous: b.previous,
+        model: b.model,
+        onUsage: (u) => (usage = u),
+      });
+      return Response.json({ text, usage });
     }
     const previous = b.previous.map((p) => ({
       ...p,
@@ -56,7 +67,12 @@ export async function POST(req: Request) {
       swing: 0,
       crowdFor: 50,
     }));
-    const judgement = await judgeRound({
+    let usage: CallUsage | null = null;
+    // model "production" runs the real Haiku-then-Opus-tiebreak path.
+    const judge = b.model === "production" ? judgeWithTiebreak : judgeRound;
+    const judgement = await judge({
+      ...(b.model && b.model !== "production" ? { model: b.model } : {}),
+      onUsage: (u) => (usage = u),
       motion: devMotion(b.motion),
       playerSide: b.playerSide,
       round: b.round,
@@ -64,7 +80,7 @@ export async function POST(req: Request) {
       aiText: b.aiText,
       previous,
     });
-    return Response.json({ judgement });
+    return Response.json({ judgement, usage });
   } catch (err) {
     return errorResponse(err);
   }

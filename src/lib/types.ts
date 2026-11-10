@@ -29,6 +29,8 @@ export interface SideScore {
 
 export interface RoundJudgement {
   verdictLine: string;
+  /** Which model produced this judgement (Haiku, or Opus on a tiebreak). */
+  judgedBy?: string;
   player: SideScore;
   ai: SideScore;
   /** Points a side raised that the other side has not yet answered. */

@@ -1,7 +1,7 @@
 import "server-only";
 import { otherSide, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "./config";
 import { dayNumber } from "./day";
-import { judgeRound } from "./judge";
+import { judgeWithTiebreak } from "./judge";
 import { opponentSpeech } from "./opponent";
 import { mockAI, mockJudge, mockOpponent } from "./mock";
 import { applySwing, didWin, finalScore, startingSplit, swingFor } from "./scoring";
@@ -97,8 +97,8 @@ export async function playRound(
 
   const judgement = mock
     ? await mockJudge(round, text, aiText)
-    : await judgeRound({ motion, playerSide: game.side, round, playerText: text, aiText, previous: game.rounds });
-  devLog(`round ${round}: AI speech ${source} in ${((t1 - t0) / 1000).toFixed(1)}s, judge ${((Date.now() - t1) / 1000).toFixed(1)}s`);
+    : await judgeWithTiebreak({ motion, playerSide: game.side, round, playerText: text, aiText, previous: game.rounds });
+  devLog(`round ${round}: AI speech ${source} in ${((t1 - t0) / 1000).toFixed(1)}s, judge (${judgement.judgedBy ?? "mock"}) ${((Date.now() - t1) / 1000).toFixed(1)}s`);
 
   const swing = swingFor(judgement.player.total, judgement.ai.total);
   const crowdFor = applySwing(game.crowdFor, game.side, swing);

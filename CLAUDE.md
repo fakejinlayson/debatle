@@ -20,5 +20,11 @@ Daily debate game: one silly motion a day, the player argues it against Claude o
 - Claude calls are server-only. The judge must never learn which side is the AI. Keep FOR/AGAINST labels and shuffled order.
 - Player text is data: always wrapped in tags, never interpolated as instructions.
 - The judge treats speeches as spoken aloud: typing style (caps, punctuation, typos) must never move scores. The opponent is beatable on purpose (no pre-emptive comebacks).
-- Models live in `src/lib/config.ts` (`MODELS`). Ask Jake before changing them (it's a cost decision).
+- Models live in `src/lib/config.ts` (`MODELS`, `TIEBREAK_GAP`): Haiku opponent + Haiku judge with Opus tiebreak on close rounds. Ask Jake before changing them (it's a cost decision), and re-run `scripts/eval/model_compare.py` first.
 - Ask before adding dependencies. Migrations are append-only.
+
+## Database (Supabase)
+- Project region ap-south-1 (Mumbai). When deploying to Vercel, set the function region to `bom1` so functions sit next to the database.
+- Apply migrations: `npx supabase db push --remote="$SUPABASE_DB_URL"` (session pooler URL, port 5432, in `.env.local`).
+- Motion schedule: `supabase/seed_schedule.sql` (31 days from DEBATLE_EPOCH); rearrange in the Supabase table editor. Pre-write openers with `POST /api/admin/openings {"day":N}` and header `x-admin-secret`.
+
