@@ -1,26 +1,210 @@
 @import "tailwindcss";
 
+/* The Chamber: dark oak, oxblood, brass, parchment. FOR = mint, AGAINST = coral. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #140d10;
+  --oak: #2a1a17;
+  --oak-2: #3b2620;
+  --oxblood: #5c1f26;
+  --brass: #d9a441;
+  --brass-dim: #8a6a2e;
+  --parchment: #efe1c4;
+  --muted: #a8957a;
+  --for: #3fe0b0;
+  --for-deep: #17785d;
+  --against: #ff5d73;
+  --against-deep: #8f2236;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-oak: var(--oak);
+  --color-oak-2: var(--oak-2);
+  --color-oxblood: var(--oxblood);
+  --color-brass: var(--brass);
+  --color-brass-dim: var(--brass-dim);
+  --color-parchment: var(--parchment);
+  --color-muted: var(--muted);
+  --color-for: var(--for);
+  --color-for-deep: var(--for-deep);
+  --color-against: var(--against);
+  --color-against-deep: var(--against-deep);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--font-body), ui-monospace, monospace;
+  font-size: 20px;
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* faint vignette + scanlines */
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 80% at 50% 0%, #2a1519 0%, var(--ink) 60%);
+  background-attachment: fixed;
+}
+
+@layer components {
+/* Chunky pixel panel: 2px outline with stepped corners. */
+.panel {
+  background: var(--oak);
+  box-shadow:
+    0 0 0 2px var(--brass-dim),
+    0 0 0 4px var(--ink),
+    0 6px 0 4px rgb(0 0 0 / 0.45);
+  clip-path: polygon(
+    0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+    100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%,
+    6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
+  );
+}
+
+.btn {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 3px solid var(--ink);
+  box-shadow: inset -3px -4px 0 rgb(0 0 0 / 0.3), inset 3px 3px 0 rgb(255 255 255 / 0.25), 0 4px 0 var(--ink);
+  transition: transform 80ms steps(2), box-shadow 80ms steps(2);
+}
+.btn:hover {
+  transform: translateY(-2px);
+}
+.btn:active {
+  transform: translateY(3px);
+  box-shadow: inset -3px -4px 0 rgb(0 0 0 / 0.3), inset 3px 3px 0 rgb(255 255 255 / 0.25), 0 1px 0 var(--ink);
+}
+.btn:disabled {
+  opacity: 0.5;
+  transform: none;
+}
+.btn:focus-visible {
+  outline: 3px dashed var(--brass);
+  outline-offset: 4px;
+}
+}
+
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* Audience speech bubble with a stepped pixel tail. */
+.bubble {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--parchment);
+  padding: 3px 7px;
+  box-shadow: 0 0 0 2px var(--ink), 2px 3px 0 2px rgb(0 0 0 / 0.4);
+  transform: translateY(-100%);
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  bottom: -6px;
+  width: 6px;
+  height: 6px;
+  background: var(--parchment);
+  box-shadow: 0 0 0 2px var(--ink);
+  clip-path: polygon(-2px -2px, 8px -2px, -2px 8px);
+}
+.bubble-flip::after {
+  left: auto;
+  right: 6px;
+  clip-path: polygon(-2px -2px, 8px -2px, 8px 8px);
+}
+@keyframes bubble-life {
+  0% {
+    opacity: 0;
+    transform: translateY(-80%) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(-100%) scale(1.08);
+  }
+  20% {
+    transform: translateY(-100%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+}
+.anim-bubble {
+  animation: bubble-life 1.7s steps(10) both;
+}
+
+@keyframes flip-in {
+  from {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes stamp {
+  0% {
+    transform: scale(1.6) rotate(-4deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.95) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 93 115 / 0.7), 0 4px 0 var(--ink);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgb(255 93 115 / 0), 0 4px 0 var(--ink);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.anim-flip {
+  animation: flip-in 380ms steps(6) both;
+  transform-origin: top;
+}
+.anim-stamp {
+  animation: stamp 420ms steps(7) both;
+}
+.anim-pulse {
+  animation: pulse-ring 1.2s steps(6) infinite;
+}
+.anim-blink {
+  animation: blink 1.2s steps(2) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .anim-flip,
+  .anim-bubble,
+  .anim-stamp,
+  .anim-pulse,
+  .anim-blink {
+    animation: none;
+  }
 }
