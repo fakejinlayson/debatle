@@ -24,7 +24,7 @@ Daily debate game: one silly motion a day, the player argues it against Claude o
 - Ask before adding dependencies. Migrations are append-only.
 
 ## Database (Supabase)
-- Project region ap-south-1 (Mumbai). When deploying to Vercel, set the function region to `bom1` so functions sit next to the database.
+- Project region us-east-1 (North Virginia), next to Vercel's default function region (`iad1`). Moved from Mumbai on 10 Nov 2026.
 - Apply migrations: `npx supabase db push --remote="$SUPABASE_DB_URL"` (session pooler URL, port 5432, in `.env.local`).
-- Motion schedule: `supabase/seed_schedule.sql` (31 days from DEBATLE_EPOCH); rearrange in the Supabase table editor. Pre-write openers with `POST /api/admin/openings {"day":N}` and header `x-admin-secret`.
+- Motion schedule: `supabase/seed_schedule.sql` (31 days from DEBATLE_EPOCH), loaded with `python scripts/seed_schedule.py`; rearrange in the Supabase table editor. Pre-write openers with `POST /api/admin/openings {"day":N}` and header `x-admin-secret`.
 
