@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import AdSlot from "@/components/AdSlot";
 import { netSwing, roundEmoji, shareText, tierFor } from "@/lib/scoring";
 import type { GameState, PublicMotion } from "@/lib/types";
 
@@ -30,11 +31,13 @@ export default function Verdict({
   motion,
   resetsInMs,
   archiveDay,
+  showAds = false,
 }: {
   game: GameState;
   motion: PublicMotion;
   resetsInMs: number;
   archiveDay?: number;
+  showAds?: boolean;
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [copied, setCopied] = useState(false);
@@ -86,6 +89,8 @@ export default function Verdict({
       <button className="btn bg-brass py-4 text-lg text-ink" onClick={share}>
         {copied ? "Copied!" : "Share result"}
       </button>
+
+      {showAds && <AdSlot placement="verdict" />}
 
       {stats && stats.games > 0 && (
         <div className="panel grid grid-cols-3 gap-2 px-3 py-3 text-center">

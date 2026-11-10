@@ -7,6 +7,7 @@ import RoundCard, { SpeechCard } from "./RoundCard";
 import Verdict from "./Verdict";
 import Chatter from "./Chatter";
 import ScrollHint from "./ScrollHint";
+import AdSlot from "@/components/AdSlot";
 import SwingBar from "./SwingBar";
 import { ROUNDS, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "@/lib/config";
 import { useSpeechInput } from "@/lib/useSpeechInput";
@@ -148,12 +149,15 @@ export default function GameScreen({
   initialGame,
   resetsInMs,
   archiveDay,
+  showAds = false,
 }: {
   motion: PublicMotion;
   initialGame: GameState;
   resetsInMs: number;
   /** Set when replaying a past day from the archive. */
   archiveDay?: number;
+  /** False for players with the unlock (decided on the server). */
+  showAds?: boolean;
 }) {
   const [game, setGame] = useState(initialGame);
   const [phase, setPhase] = useState<Phase>(initialGame.status === "finished" ? "done" : "write");
@@ -303,7 +307,7 @@ export default function GameScreen({
         </div>
       </section>
 
-      {phase === "done" && <Verdict game={game} motion={motion} resetsInMs={resetsInMs} archiveDay={archiveDay} />}
+      {phase === "done" && <Verdict game={game} motion={motion} resetsInMs={resetsInMs} archiveDay={archiveDay} showAds={showAds} />}
 
       {phase === "write" && (
         <>
@@ -333,6 +337,8 @@ export default function GameScreen({
               {phase === "thinking" ? "The opposition rises…" : JUDGING[thinkingIdx]}
             </p>
           )}
+          {/* The judge's 5–20s deliberation: the least intrusive moment for an ad. */}
+          {showAds && phase === "judging" && !error && <AdSlot placement="judging" className="mt-2" />}
         </section>
       )}
 

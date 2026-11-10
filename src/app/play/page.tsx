@@ -5,6 +5,7 @@ import { msUntilReset } from "@/lib/day";
 import { isArchiveDay, motionForDay, prepareAiSpeech, publicGame, toPublic } from "@/lib/game";
 import { readPlayerId } from "@/lib/player";
 import { store } from "@/lib/store";
+import { adsEnabled } from "@/lib/ads";
 
 // /play = today's debate; /play?day=N = an archive debate already started.
 export default async function Play({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
@@ -25,6 +26,7 @@ export default async function Play({ searchParams }: { searchParams: Promise<{ d
       initialGame={publicGame(game)}
       resetsInMs={msUntilReset()}
       archiveDay={isArchiveDay(day) ? day : undefined}
+      showAds={await adsEnabled()}
     />
   );
 }

@@ -125,6 +125,9 @@ export default function TitleScreen({
       >
         {archiveDay ? "◂ BACK TO THE ARCHIVE" : "PAST DEBATES · ARCHIVE ▸"}
       </Link>
+      <Link href="/privacy" className="mx-auto text-base text-muted hover:underline">
+        Privacy
+      </Link>
     </main>
   );
 }

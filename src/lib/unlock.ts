@@ -34,7 +34,7 @@ export async function createUnlockCheckout(opts: {
           unit_amount: UNLOCK_PRICE_CENTS,
           product_data: {
             name: "Debatle archive unlock",
-            description: "Play every past debate, forever. One-time purchase.",
+            description: "Play every past debate, forever, with no ads. One-time purchase.",
           },
         },
       },

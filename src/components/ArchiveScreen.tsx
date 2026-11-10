@@ -8,7 +8,7 @@ import type { ArchiveDay, ArchiveView } from "@/lib/archive";
 const PRICE = `$${(UNLOCK_PRICE_CENTS / 100).toFixed(0)}`;
 
 const NOTICES: Record<string, { text: string; good?: boolean }> = {
-  unlocked: { text: "ARCHIVE UNLOCKED. EVERY PAST DEBATE IS YOURS.", good: true },
+  unlocked: { text: "ARCHIVE UNLOCKED, ADS GONE. EVERY PAST DEBATE IS YOURS.", good: true },
   restored: { text: "WELCOME BACK. YOUR UNLOCK IS RESTORED.", good: true },
   pending: { text: "PAYMENT RECEIVED. YOUR UNLOCK WILL APPEAR IN A MOMENT.", good: true },
   "signed-in": { text: "SIGNED IN.", good: true },
@@ -92,7 +92,7 @@ function Paywall({ view, prominent }: { view: ArchiveView; prominent: boolean })
           Sign in with Google to unlock
         </a>
       )}
-      <p className="mt-3 text-lg text-parchment/80">One time. Every past debate, forever.</p>
+      <p className="mt-3 text-lg text-parchment/80">One time. Every past debate, forever. No ads.</p>
       {!view.user && (
         <p className="mt-1 text-base text-muted">
           Already unlocked?{" "}
@@ -163,6 +163,9 @@ export default function ArchiveScreen({ view, notice }: { view: ArchiveView; not
 
       <Link href="/" className="text-center font-display text-[0.65rem] tracking-[0.2em] text-brass hover:underline">
         ◂ TODAY&apos;S DEBATE
+      </Link>
+      <Link href="/privacy" className="text-center text-base text-muted hover:underline">
+        Privacy
       </Link>
     </main>
   );
