@@ -36,6 +36,8 @@ export interface RoundJudgement {
   /** Points a side raised that the other side has not yet answered. */
   droppedPoints: { by: "player" | "ai"; point: string }[];
   openClashes: string[];
+  /** The judge's check of earlier-round points: who made each, and how the other side replied this round. */
+  earlierPoints?: { by: "player" | "ai"; round: number; point: string; reply: "answered" | "partly answered" | "not answered" }[];
 }
 
 export interface RoundRecord {

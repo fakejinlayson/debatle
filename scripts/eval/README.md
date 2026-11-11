@@ -28,3 +28,12 @@ Start the dev server first. Each run makes real Claude calls (roughly $0.25 to $
   10 Nov 2026: Haiku at low effort leaked 1/16 (plus "This is the last word,
   so keep it simple" self-talk in most); after the output rule + medium effort
   + retry guard in `opponent.ts`: 0/16, no retries needed.
+- `python breakfast_case.py [runs] [models]`: re-judges rounds 2 and 3 of a real
+  game (11 Nov 2026) where Haiku gave round 3 to the AI although the AI never
+  answered "who cooks the dinner?". Before: Haiku R3 0/3 for the player (gap
+  -11 to -16), Opus 3/3 for the player. After the fair-comparison and
+  repeated-assumption rules + `earlier_points` list: Haiku R3 5/5 for the
+  player, production path 4/5 (2 of 10 production rounds escalated to Opus for
+  contradicting their own notes). Re-checked the same day: bias V1 58.0 vs V2
+  58.3, V3 63.0 vs V4 60.7; strength (Haiku opponent) AI average 64.1, decent
+  human wins 4/8.

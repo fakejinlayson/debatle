@@ -168,6 +168,8 @@ Wachsmuth et al. (2017) taxonomy, the standard framework for computational argum
 4. A self-contradiction means only the first claim is credited, and the AI gets credit only if it points it out.
 5. The judge rules on the framework *argument*. It doesn't bring its own criteria and doesn't assume "whatever tastes best" is the standard.
 6. The overall verdict must agree with the scores (no low-point wins).
+7. *(Added 11 Nov 2026 after a real game.)* Comparisons must be fair: moving a cost to another time or person doesn't remove it ("already cooked" still had to be cooked). Challenging an assumption the other side relies on is strong rebuttal, and repeating the assumption is not an answer. A new argument in a closing can't win the round on its own.
+8. Before scoring, the judge lists every earlier-round point and whether the other side really answered it (`earlier_points`). If its scores contradict that list (the side it scored higher dodged more), Opus re-judges the round.
 
 **Engineering mitigations:**
 - **Keep the judge separate from the opponent**: a different system prompt and ideally a different model or settings. Show the judge both sides **anonymised as "Side A / Side B"** in a randomised order to reduce self-preference and position bias.
