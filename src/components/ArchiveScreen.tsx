@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FREE_ARCHIVE_GAMES, UNLOCK_PRICE_CENTS } from "@/lib/config";
+import { UNLOCK_PRICE_CENTS } from "@/lib/config";
 import type { ArchiveDay, ArchiveView } from "@/lib/archive";
+import ArchiveCalendar from "./ArchiveCalendar";
 
 const PRICE = `$${(UNLOCK_PRICE_CENTS / 100).toFixed(0)}`;
 
@@ -15,7 +16,7 @@ const NOTICES: Record<string, { text: string; good?: boolean }> = {
   cancelled: { text: "CHECKOUT CANCELLED. NOTHING WAS CHARGED." },
   "auth-error": { text: "GOOGLE SIGN-IN DIDN'T WORK. TRY AGAIN." },
   "auth-unavailable": { text: "SIGN-IN ISN'T SET UP YET." },
-  locked: { text: `YOU'VE USED YOUR ${FREE_ARCHIVE_GAMES} FREE ARCHIVE DEBATES.` },
+  locked: { text: "THAT DAY IS IN THE FULL ARCHIVE. UNLOCK IT TO PLAY EVERY PAST DEBATE." },
 };
 
 function formatDate(iso: string) {
@@ -109,8 +110,9 @@ function Paywall({ view, prominent }: { view: ArchiveView; prominent: boolean })
 
 export default function ArchiveScreen({ view, notice }: { view: ArchiveView; notice: string | null }) {
   const { access } = view;
-  const canStart = access.unlocked || access.freeLeft > 0;
   const n = notice ? NOTICES[notice] : null;
+  // "Keep debating": the free days, No. 1 first (like Krillion's "keep diving").
+  const keep = view.days.filter((d) => access.freeDays.includes(d.day)).reverse();
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-4 px-4 pb-12 pt-5">
@@ -130,27 +132,32 @@ export default function ArchiveScreen({ view, notice }: { view: ArchiveView; not
         </p>
       )}
 
-      <p className="text-center font-display text-[0.65rem] tracking-[0.2em] text-muted">
-        {access.unlocked
-          ? "★ ARCHIVE UNLOCKED"
-          : `FREE ARCHIVE DEBATES LEFT · ${access.freeLeft} OF ${access.freeTotal}`}
-      </p>
-
-      {!access.unlocked && !canStart && <Paywall view={view} prominent />}
-
       {view.days.length === 0 ? (
         <p className="panel px-4 py-6 text-center text-xl text-muted">No past debates yet. Come back tomorrow.</p>
+      ) : access.unlocked ? (
+        <>
+          <p className="text-center font-display text-[0.65rem] tracking-[0.2em] text-brass">★ ARCHIVE UNLOCKED</p>
+          <ArchiveCalendar view={view} />
+        </>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {view.days.map((d) => (
-            <li key={d.day}>
-              <DayRow d={d} canStart={canStart} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {keep.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-center font-display text-sm tracking-[0.25em] text-brass">KEEP DEBATING</h2>
+              <ul className="flex flex-col gap-3">
+                {keep.map((d) => (
+                  <li key={d.day}>
+                    <DayRow d={d} canStart />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <h2 className="mt-2 text-center font-display text-sm tracking-[0.25em] text-muted">THE FULL ARCHIVE</h2>
+          <ArchiveCalendar view={view} />
+          <Paywall view={view} prominent={notice === "locked"} />
+        </>
       )}
-
-      {!access.unlocked && canStart && <Paywall view={view} prominent={false} />}
 
       {view.user && (
         <form action="/auth/signout" method="post" className="text-center text-base text-muted">

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     if (!user) return Response.json({ error: "Sign in with Google first", signIn: true }, { status: 401 });
 
     const playerId = await readPlayerId();
-    if ((await archiveAccess(playerId, user.id)).unlocked) return Response.json({ unlocked: true });
+    if ((await archiveAccess(user.id)).unlocked) return Response.json({ unlocked: true });
 
     const url = await createUnlockCheckout({ userId: user.id, email: user.email, playerId, origin: new URL(req.url).origin });
     return Response.json({ url });

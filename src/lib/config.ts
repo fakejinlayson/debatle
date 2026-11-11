@@ -6,7 +6,7 @@ export const ROUNDS = ["opening", "rebuttal", "closing"] as const;
 export type RoundType = (typeof ROUNDS)[number];
 export const TOTAL_ROUNDS = ROUNDS.length;
 
-/** Archive debates a player can play before needing the one-time unlock. */
+/** Days No. 1 to No. N of the archive are free to play without the unlock. */
 export const FREE_ARCHIVE_GAMES = 2;
 /** The unlock price in US cents. */
 export const UNLOCK_PRICE_CENTS = 500;
@@ -17,7 +17,7 @@ export const otherSide = (s: Side): Side => (s === "for" ? "against" : "for");
 // Day 1 of Debatle. Days roll over at 00:00 UTC.
 // Falls back to the default if the env value isn't a valid YYYY-MM-DD date
 // (e.g. half-typed while editing .env.local), so the site never crashes on it.
-const DEFAULT_EPOCH = "2026-12-01";
+const DEFAULT_EPOCH = "2026-11-07";
 const envEpoch = process.env.DEBATLE_EPOCH?.trim();
 export const EPOCH =
   envEpoch && /^\d{4}-\d{2}-\d{2}$/.test(envEpoch) && !Number.isNaN(Date.parse(`${envEpoch}T00:00:00Z`))

@@ -60,25 +60,30 @@ export const isArchiveDay = (day?: number) => day !== undefined && day < dayNumb
 /** Thrown when a player needs the unlock to start another archive game. Maps to HTTP 402. */
 export class ArchiveLocked extends GameError {
   constructor() {
-    super("You've used your free archive debates. Unlock the archive to keep going.", 402);
+    super("That day is in the full archive. Unlock it to play every past debate.", 402);
   }
 }
 
 export interface ArchiveAccess {
   unlocked: boolean;
-  freeTotal: number;
-  freeUsed: number;
-  freeLeft: number;
+  /** Past days anyone can play: the first FREE_ARCHIVE_GAMES days (No. 1, No. 2), the same for everyone. */
+  freeDays: number[];
+}
+
+/** The most recent past days, free for everyone (like Krillion's "keep diving"). */
+export function freeArchiveDays(today = dayNumber()): number[] {
+  return Array.from({ length: FREE_ARCHIVE_GAMES }, (_, i) => i + 1).filter((d) => d < today);
 }
 
 /** What this player may do in the archive. `userId` is the signed-in account, if any. */
-export async function archiveAccess(playerId: string | null, userId: string | null): Promise<ArchiveAccess> {
-  const [unlocked, freeUsed] = await Promise.all([
-    userId ? store().hasUnlock(userId) : Promise.resolve(false),
-    playerId ? store().countArchiveGames(playerId) : Promise.resolve(0),
-  ]);
-  return { unlocked, freeTotal: FREE_ARCHIVE_GAMES, freeUsed, freeLeft: Math.max(0, FREE_ARCHIVE_GAMES - freeUsed) };
+export async function archiveAccess(userId: string | null): Promise<ArchiveAccess> {
+  const unlocked = userId ? await store().hasUnlock(userId) : false;
+  return { unlocked, freeDays: freeArchiveDays() };
 }
+
+/** Whether this player may start (not just resume) a game on a past day. */
+export const canStartArchiveDay = (access: ArchiveAccess, day: number) =>
+  access.unlocked || access.freeDays.includes(day);
 
 /** The hall's starting FOR share for a game begun now: today's player split so far. */
 export async function startingCrowd(motion: Motion): Promise<number> {
@@ -88,7 +93,8 @@ export async function startingCrowd(motion: Motion): Promise<number> {
 
 /**
  * Starts (or resumes) a game. `day` defaults to today; a past day is an archive
- * game, which needs a free archive play or the unlock unless it already exists.
+ * game: the two most recent past days are free, the rest need the unlock.
+ * A game already started can always be resumed.
  */
 export async function startGame(
   playerId: string,
@@ -101,8 +107,8 @@ export async function startGame(
   if (archive) {
     const existing = await store().getGame(playerId, motion.id);
     if (existing) return existing;
-    const access = await archiveAccess(playerId, opts.userId ?? null);
-    if (!access.unlocked && access.freeLeft <= 0) throw new ArchiveLocked();
+    const access = await archiveAccess(opts.userId ?? null);
+    if (!canStartArchiveDay(access, opts.day!)) throw new ArchiveLocked();
   }
   return store().createGame(playerId, motion, side, await startingCrowd(motion), archive);
 }

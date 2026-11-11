@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdSlot from "@/components/AdSlot";
+import type { ArchiveView } from "@/lib/archive";
+
+interface KeepDebating {
+  href: string;
+  label: string;
+}
 import { netSwing, roundEmoji, shareText, tierFor } from "@/lib/scoring";
 import type { GameState, PublicMotion } from "@/lib/types";
 
@@ -41,6 +47,7 @@ export default function Verdict({
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [copied, setCopied] = useState(false);
+  const [next, setNext] = useState<KeepDebating | null>(null);
   const countdown = useCountdown(resetsInMs);
   const score = game.finalScore ?? 0;
   const net = netSwing(game.startFor, game.crowdFor, game.side);
@@ -49,6 +56,27 @@ export default function Verdict({
     fetch(archiveDay ? `/api/stats?day=${archiveDay}` : "/api/stats")
       .then((r) => (r.ok ? r.json() : null))
       .then(setStats)
+      .catch(() => {});
+  }, [archiveDay]);
+
+  // "Keep debating": the next past day this player can play and hasn't finished.
+  useEffect(() => {
+    fetch("/api/archive")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((a: ArchiveView | null) => {
+        if (!a) return;
+        const d = a.days.find(
+          (x) =>
+            x.day !== archiveDay &&
+            x.played?.status !== "finished" &&
+            (a.access.unlocked || a.access.freeDays.includes(x.day) || x.played !== null),
+        );
+        setNext(
+          d
+            ? { href: d.played ? `/play?day=${d.day}` : `/archive/${d.day}`, label: `Keep debating · No. ${d.day} ${d.emoji}` }
+            : { href: "/archive", label: a.access.unlocked ? "Browse the archive" : "The full archive" },
+        );
+      })
       .catch(() => {});
   }, [archiveDay]);
 
@@ -86,9 +114,26 @@ export default function Verdict({
         <p className="font-display text-xl tracking-widest text-parchment">{tierFor(score).toUpperCase()}</p>
       </div>
 
+      <div className="panel flex items-center justify-between px-4 py-3">
+        <p className="font-display text-[0.6rem] tracking-[0.2em] text-muted">NEXT DEBATE IN</p>
+        {countdown === "0:00:00" ? (
+          <Link href="/" className="font-display text-sm tracking-[0.2em] text-brass hover:underline">
+            IT&apos;S LIVE ▸
+          </Link>
+        ) : (
+          <p className="font-display text-2xl tabular-nums tracking-widest text-parchment">{countdown}</p>
+        )}
+      </div>
+
       <button className="btn bg-brass py-4 text-lg text-ink" onClick={share}>
         {copied ? "Copied!" : "Share result"}
       </button>
+
+      {next && (
+        <Link href={next.href} className="btn bg-oak-2 py-3 text-center text-sm text-brass">
+          {next.label} ▸
+        </Link>
+      )}
 
       {showAds && <AdSlot placement="verdict" />}
 
@@ -109,14 +154,10 @@ export default function Verdict({
         </div>
       )}
 
-      {archiveDay ? (
+      {archiveDay && (
         <Link href="/archive" className="text-center font-display text-sm tracking-[0.2em] text-brass hover:underline">
           ◂ BACK TO THE ARCHIVE
         </Link>
-      ) : (
-        <p className="text-center text-xl text-muted">
-        Next motion in <span className="text-parchment">{countdown}</span>
-      </p>
       )}
     </section>
   );

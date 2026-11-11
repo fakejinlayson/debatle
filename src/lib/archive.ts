@@ -1,7 +1,7 @@
 import "server-only";
 import { currentUser } from "./auth";
 import { dayNumber } from "./day";
-import { archiveAccess, type ArchiveAccess } from "./game";
+import { archiveAccess, todaysMotion, type ArchiveAccess } from "./game";
 import { readPlayerId } from "./player";
 import { store } from "./store";
 
@@ -15,24 +15,31 @@ export interface ArchiveDay {
 }
 
 export interface ArchiveView {
-  today: number;
+  today: { day: number; date: string; emoji: string; title: string } | null;
+  /** Past days, newest first. */
   days: ArchiveDay[];
   access: ArchiveAccess;
   user: { email: string | null } | null;
 }
 
-/** Past days (newest first) with this player's progress and archive access. */
+/** Past days (newest first) with this player's progress, today's cell, and archive access. */
 export async function archiveList(): Promise<ArchiveView> {
   const today = dayNumber();
-  const [playerId, user] = await Promise.all([readPlayerId(), currentUser()]);
+  const [playerId, user, todayMotion] = await Promise.all([
+    readPlayerId(),
+    currentUser(),
+    todaysMotion().catch(() => null),
+  ]);
   const motions = today > 1 ? await store().listMotions(today - 1) : [];
   const [games, access] = await Promise.all([
     playerId ? store().playerGames(playerId, motions.map((m) => m.id)) : Promise.resolve([]),
-    archiveAccess(playerId, user?.id ?? null),
+    archiveAccess(user?.id ?? null),
   ]);
   const byMotion = new Map(games.map((g) => [g.motionId, g]));
   return {
-    today,
+    today: todayMotion
+      ? { day: today, date: todayMotion.date, emoji: todayMotion.emoji, title: todayMotion.title }
+      : null,
     access,
     user: user ? { email: user.email } : null,
     days: motions.map((m) => {
