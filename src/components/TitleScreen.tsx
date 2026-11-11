@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import SiteLinks from "./SiteLinks";
 import { useRouter } from "next/navigation";
 import Crowd from "./Crowd";
 import type { Side } from "@/lib/config";
@@ -119,15 +120,28 @@ export default function TitleScreen({
       <p className="text-center font-display text-[0.6rem] tracking-[0.12em] text-muted sm:tracking-[0.2em]">
         3 ROUNDS · 300 CHARACTERS · WIN THE ROOM
       </p>
+      {!archiveDay && (
+        <section className="panel px-4 py-3" aria-labelledby="what-is">
+          <h2 id="what-is" className="font-display text-[0.65rem] tracking-[0.2em] text-brass">
+            WHAT IS DEBATLE
+          </h2>
+          <p className="mt-1 text-lg leading-snug text-parchment/90">
+            A daily debate game. Every day there&apos;s one ridiculous motion. Pick a side, argue it against an AI over
+            three short rounds, and an AI judge scores each speech while the crowd swings toward whoever argued
+            better.{" "}
+            <Link href="/how-to-play" className="text-brass underline">
+              How to play
+            </Link>
+          </p>
+        </section>
+      )}
       <Link
         href="/archive"
         className="mx-auto font-display text-[0.65rem] tracking-[0.2em] text-brass underline-offset-4 hover:underline"
       >
         {archiveDay ? "◂ BACK TO THE ARCHIVE" : "PAST DEBATES · ARCHIVE ▸"}
       </Link>
-      <Link href="/privacy" className="mx-auto text-base text-muted hover:underline">
-        Privacy
-      </Link>
+      <SiteLinks />
     </main>
   );
 }

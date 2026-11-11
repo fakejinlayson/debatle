@@ -11,6 +11,9 @@ export const FREE_ARCHIVE_GAMES = 2;
 /** The unlock price in US cents. */
 export const UNLOCK_PRICE_CENTS = 500;
 
+/** The live site, for the sitemap and robots.txt. */
+export const SITE_URL = "https://debatle.io";
+
 export type Side = "for" | "against";
 export const otherSide = (s: Side): Side => (s === "for" ? "against" : "for");
 

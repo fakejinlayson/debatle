@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import InfoPage, { Section } from "@/components/InfoPage";
 
 export const metadata: Metadata = { title: "Privacy · Debatle" };
 
@@ -8,25 +8,9 @@ export const metadata: Metadata = { title: "Privacy · Debatle" };
 const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 const UPDATED = "11 November 2026";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-display text-xs tracking-[0.2em] text-brass">{title}</h2>
-      <div className="flex flex-col gap-2 text-lg leading-snug text-parchment/90">{children}</div>
-    </section>
-  );
-}
-
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-4 pb-16 pt-5">
-      <header className="flex items-end justify-between">
-        <Link href="/" className="font-display text-2xl font-bold tracking-wider text-brass">
-          DEBATLE
-        </Link>
-        <p className="font-display text-xs tracking-[0.25em] text-muted">PRIVACY</p>
-      </header>
-
+    <InfoPage label="PRIVACY">
       <p className="text-lg text-muted">Last updated {UPDATED}.</p>
 
       <Section title="WHAT WE STORE">
@@ -97,9 +81,6 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Link href="/" className="text-center font-display text-[0.65rem] tracking-[0.2em] text-brass hover:underline">
-        ◂ TODAY&apos;S DEBATE
-      </Link>
-    </main>
+    </InfoPage>
   );
 }

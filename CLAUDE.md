@@ -14,6 +14,7 @@ Daily debate game: one silly motion a day, the player argues it against Claude o
 - `src/components/game/`: the play screen (`GameScreen` state machine: write → thinking → reveal → done), `RoundCard` (staged reveal), `Verdict`. Rendered client-only via `PlayClient`.
 - `src/lib/useSpeechInput.ts`: mic input through the browser Web Speech API (no server cost; hidden where unsupported, e.g. Firefox).
 - `src/app/api/dev/judge` + `scripts/eval/`: dev-only judge/opponent calibration (style bias, opponent strength). Re-run after changing either prompt.
+- Text pages (`/how-to-play`, `/about`, `/privacy`) share `components/InfoPage.tsx` and are server-rendered so AdSense's reviewer can read them; `app/robots.ts` + `app/sitemap.ts` list them. Ads: only the verdict slot (AdSense bans ads on loading/transition screens, so none during judging).
 - `src/lib/mock.ts`: `DEBATLE_MOCK_AI=1` fakes the opponent and judge in dev, for UI work without API spend.
 
 ## Rules

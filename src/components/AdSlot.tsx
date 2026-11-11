@@ -9,13 +9,14 @@ import Script from "next/script";
 //
 // Env (public, safe in the browser):
 //   NEXT_PUBLIC_ADSENSE_CLIENT  e.g. ca-pub-1234567890123456
-//   NEXT_PUBLIC_ADSENSE_SLOT_JUDGING / NEXT_PUBLIC_ADSENSE_SLOT_VERDICT  ad unit ids
+//   NEXT_PUBLIC_ADSENSE_SLOT_VERDICT  ad unit id
+// (No ad during the judging wait: AdSense doesn't allow ads on loading or
+// transition screens.)
 // Unset on the live site → renders nothing. In dev → a dashed placeholder
 // showing where the ad goes. Space is reserved either way so nothing jumps.
 
 const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const SLOTS = {
-  judging: process.env.NEXT_PUBLIC_ADSENSE_SLOT_JUDGING,
   verdict: process.env.NEXT_PUBLIC_ADSENSE_SLOT_VERDICT,
 } as const;
 

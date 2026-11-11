@@ -5,6 +5,7 @@ import Link from "next/link";
 import { UNLOCK_PRICE_CENTS } from "@/lib/config";
 import type { ArchiveDay, ArchiveView } from "@/lib/archive";
 import ArchiveCalendar from "./ArchiveCalendar";
+import SiteLinks from "./SiteLinks";
 
 const PRICE = `$${(UNLOCK_PRICE_CENTS / 100).toFixed(0)}`;
 
@@ -171,9 +172,7 @@ export default function ArchiveScreen({ view, notice }: { view: ArchiveView; not
       <Link href="/" className="text-center font-display text-[0.65rem] tracking-[0.2em] text-brass hover:underline">
         ◂ TODAY&apos;S DEBATE
       </Link>
-      <Link href="/privacy" className="text-center text-base text-muted hover:underline">
-        Privacy
-      </Link>
+      <SiteLinks />
     </main>
   );
 }

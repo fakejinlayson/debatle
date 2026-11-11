@@ -7,7 +7,6 @@ import RoundCard, { SpeechCard } from "./RoundCard";
 import Verdict from "./Verdict";
 import Chatter from "./Chatter";
 import ScrollHint from "./ScrollHint";
-import AdSlot from "@/components/AdSlot";
 import SwingBar from "./SwingBar";
 import { ROUNDS, SPEECH_MAX_CHARS, TOTAL_ROUNDS, type Side } from "@/lib/config";
 import { useSpeechInput } from "@/lib/useSpeechInput";
@@ -337,8 +336,6 @@ export default function GameScreen({
               {phase === "thinking" ? "The opposition rises…" : JUDGING[thinkingIdx]}
             </p>
           )}
-          {/* The judge's 5–20s deliberation: the least intrusive moment for an ad. */}
-          {showAds && phase === "judging" && !error && <AdSlot placement="judging" className="mt-2" />}
         </section>
       )}
 
